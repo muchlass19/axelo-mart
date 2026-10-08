@@ -18,6 +18,7 @@ Hanya untuk dijalankan **lokal** (bukan production).
   - Keranjang (session), checkout, riwayat pesanan.
   - Pembayaran **Midtrans Snap (Sandbox)** + tombol **Cek Status Pembayaran**.
 - **API chatbot** read-only di `/api/v1` dengan header `X-API-KEY`.
+- **Widget chatbot AI** (tombol 💬 di semua halaman) memakai LLM lewat **9router**. Akses data dibatasi per role di server.
 - UI: Blade + Bootstrap 5 via CDN (tanpa npm / build step).
 
 ## Kebutuhan
@@ -285,6 +286,53 @@ curl -i "$BASE/products"
 # {"message":"API key tidak valid atau tidak dikirim (header X-API-KEY)."}
 ```
 
+## Chatbot AI (Widget Web) via 9router
+
+Di pojok kanan bawah setiap halaman (marketplace & admin) ada tombol 💬. Widget mengirim pesan ke `POST /chatbot` (dilindungi CSRF, maksimal 20 pesan/menit per user atau per IP untuk guest). Riwayat percakapan disimpan di session (20 pesan terakhir) dan bisa dihapus dengan tombol **Reset**.
+
+LLM-nya diakses lewat [9router](https://github.com/decolua/9router), gateway lokal yang kompatibel dengan OpenAI (`POST /v1/chat/completions` + function/tool calling).
+
+### Setup 9router
+
+```bash
+npm install -g 9router
+9router                      # dashboard: http://localhost:20128/dashboard, API: http://localhost:20128/v1
+```
+
+1. Buka dashboard 9router → **Providers** → hubungkan minimal satu provider (mis. OpenCode Free, Kiro, Gemini, atau provider API key lain).
+2. Salin **API key** dari dashboard 9router (kosongkan kalau autentikasi API dimatikan).
+3. Lihat daftar model yang tersedia lalu pilih satu, **sebaiknya yang mendukung tool calling** (`"tools": true` di field `capabilities`):
+   ```bash
+   curl -H "Authorization: Bearer <API_KEY_9ROUTER>" http://localhost:20128/v1/models
+   ```
+4. Isi `.env`:
+   ```dotenv
+   NINEROUTER_BASE_URL=http://localhost:20128/v1
+   NINEROUTER_API_KEY=isi-api-key-9router
+   NINEROUTER_MODEL=id-model-dari-/v1/models
+   NINEROUTER_TIMEOUT=60
+   ```
+   Tidak ada model yang di-hardcode. Kalau `NINEROUTER_MODEL` kosong, widget menampilkan pesan "asisten AI belum dikonfigurasi".
+
+### Akses per role (dicek di server, bukan hanya lewat prompt)
+
+| Role | Tool yang dikirim ke LLM | Data yang bisa diakses |
+|---|---|---|
+| Guest & customer | `search_products`, `get_product`, `check_stock` | Hanya produk **aktif**: cari/daftar produk, detail, harga, ketersediaan stok |
+| Admin | semua tool di atas + `low_stock`, `sales_report`, `recent_orders` | Semua produk (termasuk nonaktif), stok menipis, laporan penjualan per periode, pesanan terbaru & jumlah per status |
+
+- Hanya definisi tool yang diizinkan untuk role tersebut yang dikirim ke LLM.
+- Saat LLM memanggil tool, role **dicek ulang**. Tool di luar izin ditolak ("Akses ditolak"), dan tool produk untuk guest/customer selalu dibatasi ke produk aktif, meskipun LLM mengirim parameter lain.
+- Customer **tidak** bisa melihat data pesanan lewat chatbot (termasuk pesanan sendiri); bot akan mengarahkan ke menu "Pesanan Saya".
+- Tool memakai service yang sama dengan API `/api/v1` (`App\Services\CatalogService` & `ReportService`), tidak memanggil HTTP API secara internal.
+
+### Perilaku saat ada masalah
+
+- Model tidak mengembalikan `tool_calls` → teks jawabannya langsung dipakai.
+- Loop tool calling dibatasi **5 putaran**, lalu bot diminta memberi jawaban akhir tanpa tool.
+- Provider menolak parameter `tools` (HTTP 400/422) → dicoba ulang sekali tanpa tools.
+- 9router mati, timeout, error, atau belum dikonfigurasi → widget menampilkan pesan error ramah dalam Bahasa Indonesia (HTTP 503), aplikasi tidak crash. Detail error dicatat di `storage/logs/laravel.log`.
+
 ## Testing
 
 ```bash
@@ -297,7 +345,7 @@ Test memakai SQLite in-memory (lihat `phpunit.xml`), jadi butuh ekstensi `pdo_sq
 DB_CONNECTION=mysql DB_DATABASE=axelo_mart_test DB_USERNAME=root DB_PASSWORD= php artisan test
 ```
 
-Cakupan test: register/login & akses per role, CRUD produk + upload multi gambar, potong/kembalikan stok saat ubah status, katalog, checkout tanpa key Midtrans, webhook Midtrans (signature, idempotent, expire), proteksi API key, pencarian produk & cek stok, dan laporan penjualan.
+Cakupan test: register/login & akses per role, CRUD produk + upload multi gambar, potong/kembalikan stok saat ubah status, katalog, checkout tanpa key Midtrans, webhook Midtrans (signature, idempotent, expire), proteksi API key, pencarian produk & cek stok, laporan penjualan, dan chatbot (9router di-mock dengan `Http::fake`: tool per role, penolakan tool call palsu, batas loop, error saat 9router mati/belum dikonfigurasi, riwayat, rate limit).
 
 ## Struktur Singkat
 
@@ -307,10 +355,11 @@ app/
     Admin/        DashboardController, ProductController, OrderController
     Api/V1/       ProductController, StockController, ReportController, OrderController
     Auth/         AuthController
-    ShopController, CartController, CheckoutController, OrderController, MidtransNotificationController
+    ShopController, CartController, CheckoutController, OrderController, MidtransNotificationController, ChatbotController
   Http/Middleware/ EnsureRole (role:admin|customer), ChatbotApiKey (X-API-KEY)
   Models/          User, Product, ProductImage, Order, OrderItem
-  Services/        MidtransService, ReportService
+  Services/        MidtransService, ReportService, CatalogService
+    Chatbot/       NineRouterClient, ChatbotService, ChatbotTools
 database/seeders/  UserSeeder, ProductSeeder, OrderSeeder
 routes/            web.php, api.php
 ```

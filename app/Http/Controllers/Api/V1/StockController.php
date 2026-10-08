@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
+use App\Services\CatalogService;
 use App\Services\ReportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 class StockController extends Controller
 {
     /** GET /api/v1/stock?id=1  atau  /api/v1/stock?name=kopi */
-    public function check(Request $request): JsonResponse
+    public function check(Request $request, CatalogService $catalog): JsonResponse
     {
         $data = $request->validate([
             'id' => ['required_without:name', 'nullable', 'integer'],
@@ -20,21 +20,16 @@ class StockController extends Controller
             'required_without' => 'Kirim parameter id atau name.',
         ]);
 
-        if (! empty($data['id'])) {
-            $product = Product::find($data['id']);
+        $id = empty($data['id']) ? null : (int) $data['id'];
+        $rows = $catalog->stockCheck($id, $data['name'] ?? null)->map(fn ($p) => CatalogService::stockRow($p));
 
-            return $product
-                ? response()->json(['data' => [$this->stockRow($product)]])
+        if ($id) {
+            return $rows->isNotEmpty()
+                ? response()->json(['data' => $rows])
                 : response()->json(['message' => 'Produk tidak ditemukan.', 'data' => []], 404);
         }
 
-        $products = Product::where('name', 'like', "%{$data['name']}%")->orderBy('name')->limit(20)->get();
-
-        return response()->json([
-            'query' => $data['name'],
-            'count' => $products->count(),
-            'data' => $products->map(fn ($p) => $this->stockRow($p)),
-        ]);
+        return response()->json(['query' => $data['name'], 'count' => $rows->count(), 'data' => $rows]);
     }
 
     /** GET /api/v1/stock/low?threshold=5 */
@@ -46,19 +41,7 @@ class StockController extends Controller
         return response()->json([
             'threshold' => $threshold,
             'count' => $products->count(),
-            'data' => $products->map(fn ($p) => $this->stockRow($p)),
+            'data' => $products->map(fn ($p) => CatalogService::stockRow($p)),
         ]);
-    }
-
-    private function stockRow(Product $product): array
-    {
-        return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'stock' => $product->stock,
-            'status' => $product->status,
-            'is_available' => $product->isActive() && $product->stock > 0,
-            'price' => $product->price,
-        ];
     }
 }

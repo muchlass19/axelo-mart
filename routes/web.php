@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\MidtransNotificationController;
 use App\Http\Controllers\OrderController;
@@ -34,6 +35,12 @@ Route::middleware(['auth', 'role:customer'])->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{order}/pay', [OrderController::class, 'pay'])->name('orders.pay');
     Route::post('/orders/{order}/check-status', [OrderController::class, 'checkStatus'])->name('orders.check-status');
+});
+
+// Chatbot AI (semua pengunjung; akses data dibatasi per role di ChatbotTools)
+Route::middleware('throttle:chatbot')->group(function () {
+    Route::post('/chatbot', [ChatbotController::class, 'send'])->name('chatbot.send');
+    Route::post('/chatbot/reset', [ChatbotController::class, 'reset'])->name('chatbot.reset');
 });
 
 // Webhook Midtrans (tanpa CSRF)

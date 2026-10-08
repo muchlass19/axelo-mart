@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Services\CatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
+    public function __construct(private CatalogService $catalog) {}
+
     /** GET /api/v1/products?search=&status=active|inactive&available=1&per_page=20 */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -22,11 +25,8 @@ class ProductController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $products = Product::with('images')
-            ->when($filters['search'] ?? null, fn ($q, $search) => $q->where('name', 'like', "%{$search}%"))
-            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
-            ->when($request->boolean('available'), fn ($q) => $q->available())
-            ->orderBy('name')
+        $products = $this->catalog->query([...$filters, 'available' => $request->boolean('available')])
+            ->with('images')
             ->paginate($filters['per_page'] ?? 20)
             ->withQueryString();
 
@@ -36,7 +36,7 @@ class ProductController extends Controller
     /** GET /api/v1/products/{id} */
     public function show(int $id): ProductResource|JsonResponse
     {
-        $product = Product::with('images')->find($id);
+        $product = $this->catalog->find($id);
 
         return $product
             ? new ProductResource($product)

@@ -41,4 +41,12 @@ return [
         'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
     ],
 
+    // 9router: gateway LLM lokal yang kompatibel dengan OpenAI (dipakai widget chatbot).
+    'ninerouter' => [
+        'base_url' => env('NINEROUTER_BASE_URL', 'http://localhost:20128/v1'),
+        'api_key' => env('NINEROUTER_API_KEY'),
+        'model' => env('NINEROUTER_MODEL'),
+        'timeout' => (int) env('NINEROUTER_TIMEOUT', 60),
+    ],
+
 ];
