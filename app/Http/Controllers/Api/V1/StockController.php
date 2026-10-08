@@ -16,6 +16,8 @@ class StockController extends Controller
         $data = $request->validate([
             'id' => ['required_without:name', 'nullable', 'integer'],
             'name' => ['required_without:id', 'nullable', 'string', 'max:100'],
+        ], [
+            'required_without' => 'Kirim parameter id atau name.',
         ]);
 
         if (! empty($data['id'])) {

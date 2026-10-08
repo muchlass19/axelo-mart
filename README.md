@@ -1,58 +1,316 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Axelo Mart 🛒
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Project **dummy marketplace** sederhana berbasis **Laravel 13 + MySQL**, disiapkan untuk nanti dihubungkan ke **AI chatbot (web & WhatsApp)** yang membaca data produk, stok, dan laporan penjualan lewat API.
 
-## About Laravel
+Hanya untuk dijalankan **lokal** (bukan production).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Fitur
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Auth sederhana**: login, register (otomatis jadi `customer`), logout.
+- **Role**: `customer` (belanja di marketplace) dan `admin` (dashboard admin). Dicek oleh middleware `role:...`.
+- **Admin**
+  - Dashboard ringkasan: total penjualan, penjualan 30 hari, order pending, produk terlaris, stok menipis, pesanan terbaru.
+  - CRUD produk: nama, harga, stok, status aktif/nonaktif, deskripsi, **multi gambar** (upload banyak, hapus per gambar).
+  - Toggle aktif/nonaktif produk dengan sekali klik.
+  - Daftar pesanan (filter status / cari) + ubah status pesanan.
+- **Customer**
+  - Katalog (hanya produk **aktif** dan **stok > 0**), pencarian, detail produk dengan galeri gambar.
+  - Keranjang (session), checkout, riwayat pesanan.
+  - Pembayaran **Midtrans Snap (Sandbox)** + tombol **Cek Status Pembayaran**.
+- **API chatbot** read-only di `/api/v1` dengan header `X-API-KEY`.
+- UI: Blade + Bootstrap 5 via CDN (tanpa npm / build step).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Kebutuhan
 
-## Learning Laravel
+- PHP **8.3+** dengan ekstensi: `pdo_mysql`, `mbstring`, `xml`, `curl`, `zip`, `bcmath`, `intl`, `fileinfo` (+ `pdo_sqlite` untuk menjalankan test)
+- Composer 2
+- MySQL 8 / MariaDB 10.6+
+- (Opsional) akun Midtrans Sandbox dan ngrok
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Setup
 
 ```bash
-composer require laravel/boost --dev
+git clone https://github.com/muchlass19/axelo-mart.git
+cd axelo-mart
 
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Buat database kosong, misalnya:
 
-## Contributing
+```sql
+CREATE DATABASE axelo_mart CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Lalu sesuaikan `.env`:
 
-## Code of Conduct
+```dotenv
+DB_DATABASE=axelo_mart
+DB_USERNAME=root
+DB_PASSWORD=
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+CHATBOT_API_KEY=isi-dengan-string-acak-panjang   # contoh: openssl rand -hex 24
 
-## Security Vulnerabilities
+# opsional (lihat bagian Midtrans)
+MIDTRANS_SERVER_KEY=
+MIDTRANS_CLIENT_KEY=
+MIDTRANS_IS_PRODUCTION=false
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Jalankan migrasi + data dummy, link storage, dan server:
 
-## License
+```bash
+php artisan migrate --seed        # atau migrate:fresh --seed untuk reset total
+php artisan storage:link
+php artisan serve                 # http://localhost:8000
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+> Shortcut: `composer run setup` (install, copy .env, key:generate, migrate --seed, storage:link). Tetap isi kredensial DB di `.env` dulu.
+
+## Akun Demo (dari seeder)
+
+Semua password: **`password`**
+
+| Role     | Email              |
+|----------|--------------------|
+| Admin    | `admin@axelo.test` |
+| Customer | `budi@axelo.test`  |
+| Customer | `siti@axelo.test`  |
+| Customer | `andi@axelo.test`  |
+
+Data dummy lainnya: 20 produk (2 nonaktif, 1 stok habis, beberapa stok menipis) masing-masing 2 gambar placeholder SVG yang **dibuat lokal saat seeding** (tanpa hotlink), dan ±90 order tersebar di 60 hari terakhir dengan berbagai status.
+
+## Status Pesanan & Aturan Stok
+
+| Status      | Arti                          | Dihitung sebagai penjualan? |
+|-------------|-------------------------------|-----------------------------|
+| `pending`   | Menunggu pembayaran           | ❌ |
+| `paid`      | Sudah dibayar                 | ✅ |
+| `shipped`   | Dikirim                       | ✅ |
+| `completed` | Selesai                       | ✅ |
+| `failed`    | Pembayaran gagal / ditolak    | ❌ |
+| `expired`   | Pembayaran kedaluwarsa        | ❌ |
+| `cancelled` | Dibatalkan                    | ❌ |
+
+**Kapan stok dipotong?** Saat **pembayaran sukses** (status berubah ke `paid`/`shipped`/`completed`), bukan saat checkout.
+
+- Saat checkout stok hanya **dicek** (cukup atau tidak), belum dipotong. Jadi order yang tidak dibayar (expired/failed/cancelled) tidak mengunci stok dan tidak perlu dikembalikan.
+- Pemotongan stok terjadi di `Order::transitionTo()` di dalam transaksi DB dengan `lockForUpdate`, dan ditandai kolom `stock_deducted` → **idempotent** (webhook yang dikirim berkali-kali + tombol cek status tidak memotong stok dua kali).
+- Jika order yang sudah dibayar kemudian di-set admin ke `cancelled`/`failed`/`expired`/`pending`, stok **dikembalikan**.
+- Konsekuensi: kalau dua orang checkout barang terakhir bersamaan, keduanya bisa membayar (oversold). Stok tidak akan minus (dipotong maksimal sampai 0) dan kejadian ini dicatat di `storage/logs/laravel.log` sebagai warning, untuk ditangani manual (refund). Untuk project dummy ini dianggap cukup.
+- Laporan penjualan memakai tanggal **`paid_at`** (tanggal bayar).
+
+## Pembayaran Midtrans (Sandbox)
+
+1. Daftar / login di <https://dashboard.sandbox.midtrans.com>.
+2. Buka **Settings → Access Keys**, salin **Server Key** & **Client Key** (diawali `SB-Mid-...`) ke `.env`:
+   ```dotenv
+   MIDTRANS_SERVER_KEY=SB-Mid-server-xxxx
+   MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxx
+   MIDTRANS_IS_PRODUCTION=false
+   ```
+3. Login sebagai customer → tambah produk ke keranjang → **Buat Pesanan** → popup Snap terbuka otomatis.
+4. Bayar memakai data uji sandbox, misalnya:
+   - Kartu kredit `4811 1111 1111 1114`, CVV `123`, expiry bulan/tahun mana saja di masa depan, OTP `112233`.
+   - Virtual Account / QRIS / e-wallet: selesaikan di simulator <https://simulator.sandbox.midtrans.com>.
+5. Setelah popup selesai, aplikasi otomatis memanggil **Cek Status Pembayaran**. Tombol ini juga bisa diklik manual kapan saja di halaman detail pesanan: aplikasi memanggil **Midtrans Transaction Status API** lalu menyinkronkan status order. Cara ini jalan **tanpa webhook**, jadi cocok untuk lokal.
+
+Jika key Midtrans kosong, aplikasi **tidak error**: pesanan tetap dibuat (status `pending`) dan muncul pesan bahwa Midtrans belum dikonfigurasi. Admin tetap bisa mengubah status pesanan secara manual untuk testing.
+
+### Webhook (HTTP Notification) via ngrok
+
+Endpoint: `POST /midtrans/notification` (dikecualikan dari CSRF, signature diverifikasi dengan `sha512(order_id + status_code + gross_amount + server_key)`, dan `gross_amount` dicocokkan dengan total order).
+
+Karena Midtrans tidak bisa mengakses `localhost`, expose dengan ngrok:
+
+```bash
+php artisan serve
+ngrok http 8000
+```
+
+Lalu di dashboard sandbox Midtrans buka **Settings → Payment → Notification URL** (di dashboard lama: *Settings → Configuration → Payment Notification URL*) dan isi:
+
+```
+https://xxxx-xx-xx.ngrok-free.app/midtrans/notification
+```
+
+Mapping status Midtrans → order: `settlement`/`capture(accept)` → `paid`, `pending` → `pending`, `deny`/`failure` → `failed`, `expire` → `expired`, `cancel` → `cancelled`. Order yang sudah `paid/shipped/completed` tidak akan diturunkan statusnya oleh notifikasi Midtrans.
+
+## API Chatbot (`/api/v1`)
+
+- Semua endpoint **GET**, read-only, respons JSON.
+- Wajib header **`X-API-KEY: <CHATBOT_API_KEY>`**.
+  - Tanpa / salah key → `401`.
+  - `CHATBOT_API_KEY` kosong di `.env` → `503` (API tertutup).
+- Rate limit 120 request/menit.
+- Penjualan hanya menghitung order berstatus `paid`, `shipped`, `completed`.
+
+Siapkan variabel untuk contoh di bawah:
+
+```bash
+BASE=http://localhost:8000/api/v1
+KEY=isi-CHATBOT_API_KEY-anda
+```
+
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| GET | `/products` | List / cari produk |
+| GET | `/products/{id}` | Detail produk |
+| GET | `/stock` | Cek stok berdasarkan `id` atau `name` |
+| GET | `/stock/low` | Daftar stok menipis |
+| GET | `/reports/sales` | Laporan penjualan per periode |
+| GET | `/orders/recent` | Ringkasan pesanan terbaru |
+
+### 1. List / cari produk
+
+Parameter (opsional): `search` (nama), `status` (`active`/`inactive`), `available=1` (hanya aktif & stok > 0), `per_page` (1–100, default 20), `page`.
+
+```bash
+curl -H "X-API-KEY: $KEY" "$BASE/products"
+curl -H "X-API-KEY: $KEY" "$BASE/products?search=kopi&status=active"
+curl -H "X-API-KEY: $KEY" "$BASE/products?available=1&per_page=5"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": 1, "name": "Kopi Arabika Gayo 250g", "price": 85000, "price_formatted": "Rp 85.000",
+      "stock": 40, "status": "active", "is_available": true,
+      "description": "Biji kopi arabika asli Aceh Gayo...",
+      "images": ["http://localhost:8000/storage/products/seed/1-1.svg", "..."],
+      "url": "http://localhost:8000/products/1", "updated_at": "2026-10-08T09:23:27+07:00"
+    }
+  ],
+  "links": { "...": "..." },
+  "meta": { "current_page": 1, "total": 2, "...": "..." }
+}
+```
+
+### 2. Detail produk
+
+```bash
+curl -H "X-API-KEY: $KEY" "$BASE/products/1"
+```
+
+Respons `{"data": {...}}` (format sama seperti di atas). Produk tidak ada → `404 {"message": "Produk tidak ditemukan."}`.
+
+### 3. Cek stok (by id atau nama)
+
+```bash
+curl -H "X-API-KEY: $KEY" "$BASE/stock?id=1"
+curl -H "X-API-KEY: $KEY" "$BASE/stock?name=kopi"
+```
+
+```json
+{
+  "query": "kopi",
+  "count": 2,
+  "data": [
+    { "id": 1, "name": "Kopi Arabika Gayo 250g", "stock": 40, "status": "active", "is_available": true, "price": 85000 },
+    { "id": 2, "name": "Kopi Robusta Lampung 250g", "stock": 35, "status": "active", "is_available": true, "price": 55000 }
+  ]
+}
+```
+
+Tanpa `id` maupun `name` → `422`.
+
+### 4. Stok menipis
+
+Parameter: `threshold` (default `LOW_STOCK_THRESHOLD` di `.env`, default 5). Mengembalikan produk dengan `stock <= threshold` (termasuk produk nonaktif, lihat field `status`).
+
+```bash
+curl -H "X-API-KEY: $KEY" "$BASE/stock/low"
+curl -H "X-API-KEY: $KEY" "$BASE/stock/low?threshold=10"
+```
+
+```json
+{ "threshold": 5, "count": 5, "data": [ { "id": 11, "name": "Sandal Jepit Karet Premium", "stock": 0, "status": "active", "is_available": false, "price": 35000 } ] }
+```
+
+### 5. Laporan penjualan per periode
+
+Parameter: `from`, `to` (format `YYYY-MM-DD`, default 30 hari terakhir), `limit` (jumlah top produk, default 5, maks 50).
+
+```bash
+curl -H "X-API-KEY: $KEY" "$BASE/reports/sales"
+curl -H "X-API-KEY: $KEY" "$BASE/reports/sales?from=2026-09-01&to=2026-09-30&limit=3"
+```
+
+```json
+{
+  "period": { "from": "2026-09-01", "to": "2026-09-30" },
+  "counted_statuses": ["paid", "shipped", "completed"],
+  "total_revenue": 14132000,
+  "total_orders": 36,
+  "items_sold": 135,
+  "average_order_value": 392556,
+  "total_revenue_formatted": "Rp 14.132.000",
+  "top_products": [
+    { "product_id": 9, "product_name": "Kemeja Batik Pria Lengan Pendek", "quantity_sold": 12, "revenue": 2100000 }
+  ]
+}
+```
+
+### 6. Ringkasan pesanan terbaru
+
+Parameter: `limit` (default 10, maks 50), `status` (filter list), `days` (periode ringkasan per status, default 7).
+
+```bash
+curl -H "X-API-KEY: $KEY" "$BASE/orders/recent"
+curl -H "X-API-KEY: $KEY" "$BASE/orders/recent?limit=5&status=pending&days=30"
+```
+
+```json
+{
+  "summary": { "days": 7, "total_orders": 23, "by_status": { "completed": 4, "paid": 8, "pending": 3 } },
+  "data": [
+    {
+      "order_number": "AXM-261008-7DAECB", "customer_name": "Budi", "status": "paid", "status_label": "Dibayar",
+      "total_amount": 290000, "total_amount_formatted": "Rp 290.000", "items_count": 3,
+      "items": [ { "product_name": "Kopi Arabika Gayo 250g", "quantity": 2, "subtotal": 170000 } ],
+      "payment_type": "bank_transfer", "created_at": "2026-10-08T09:23:00+07:00", "paid_at": "2026-10-08T09:25:00+07:00"
+    }
+  ]
+}
+```
+
+### Contoh tanpa API key
+
+```bash
+curl -i "$BASE/products"
+# HTTP/1.1 401 Unauthorized
+# {"message":"API key tidak valid atau tidak dikirim (header X-API-KEY)."}
+```
+
+## Testing
+
+```bash
+php artisan test
+```
+
+Test memakai SQLite in-memory (lihat `phpunit.xml`), jadi butuh ekstensi `pdo_sqlite`. Untuk menjalankan test ke MySQL:
+
+```bash
+DB_CONNECTION=mysql DB_DATABASE=axelo_mart_test DB_USERNAME=root DB_PASSWORD= php artisan test
+```
+
+Cakupan test: register/login & akses per role, CRUD produk + upload multi gambar, potong/kembalikan stok saat ubah status, katalog, checkout tanpa key Midtrans, webhook Midtrans (signature, idempotent, expire), proteksi API key, pencarian produk & cek stok, dan laporan penjualan.
+
+## Struktur Singkat
+
+```
+app/
+  Http/Controllers/
+    Admin/        DashboardController, ProductController, OrderController
+    Api/V1/       ProductController, StockController, ReportController, OrderController
+    Auth/         AuthController
+    ShopController, CartController, CheckoutController, OrderController, MidtransNotificationController
+  Http/Middleware/ EnsureRole (role:admin|customer), ChatbotApiKey (X-API-KEY)
+  Models/          User, Product, ProductImage, Order, OrderItem
+  Services/        MidtransService, ReportService
+database/seeders/  UserSeeder, ProductSeeder, OrderSeeder
+routes/            web.php, api.php
+```

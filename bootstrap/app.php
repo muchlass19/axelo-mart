@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\ChatbotApiKey;
+use App\Http\Middleware\EnsureRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,8 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureRole::class,
-            'chatbot.key' => \App\Http\Middleware\ChatbotApiKey::class,
+            'role' => EnsureRole::class,
+            'chatbot.key' => ChatbotApiKey::class,
         ]);
         $middleware->validateCsrfTokens(except: ['midtrans/notification']);
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->isAdmin() ? route('admin.dashboard') : route('home'));

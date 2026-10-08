@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
@@ -33,8 +34,12 @@ class ProductController extends Controller
     }
 
     /** GET /api/v1/products/{id} */
-    public function show(Product $product): ProductResource
+    public function show(int $id): ProductResource|JsonResponse
     {
-        return new ProductResource($product->load('images'));
+        $product = Product::with('images')->find($id);
+
+        return $product
+            ? new ProductResource($product)
+            : response()->json(['message' => 'Produk tidak ditemukan.'], 404);
     }
 }

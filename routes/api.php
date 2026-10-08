@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 */
 Route::prefix('v1')->middleware(['throttle:120,1', 'chatbot.key'])->group(function () {
     Route::get('products', [V1\ProductController::class, 'index']);
-    Route::get('products/{product}', [V1\ProductController::class, 'show'])->whereNumber('product');
+    Route::get('products/{id}', [V1\ProductController::class, 'show'])->whereNumber('id');
     Route::get('stock', [V1\StockController::class, 'check']);
     Route::get('stock/low', [V1\StockController::class, 'low']);
     Route::get('reports/sales', [V1\ReportController::class, 'sales']);
