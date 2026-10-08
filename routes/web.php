@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,5 +17,13 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 
 // Admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/', Admin\DashboardController::class)->name('dashboard');
+
+    Route::resource('products', Admin\ProductController::class)->except('show');
+    Route::patch('products/{product}/toggle', [Admin\ProductController::class, 'toggle'])->name('products.toggle');
+    Route::delete('product-images/{image}', [Admin\ProductController::class, 'destroyImage'])->name('product-images.destroy');
+
+    Route::get('orders', [Admin\OrderController::class, 'index'])->name('orders.index');
+    Route::get('orders/{order}', [Admin\OrderController::class, 'show'])->name('orders.show');
+    Route::patch('orders/{order}/status', [Admin\OrderController::class, 'updateStatus'])->name('orders.status');
 });
