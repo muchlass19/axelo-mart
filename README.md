@@ -21,6 +21,8 @@ Hanya untuk dijalankan **lokal** (bukan production).
 - **Widget chatbot AI** (tombol 💬 di semua halaman) memakai LLM lewat **9router**. Akses data dibatasi per role di server.
 - UI: Blade + Bootstrap 5 via CDN (tanpa npm / build step).
 
+> 🚀 **Deploy ke server (Easypanel + Docker):** lihat [docs/DEPLOY_EASYPANEL.md](docs/DEPLOY_EASYPANEL.md).
+
 ## Kebutuhan
 
 - PHP **8.3+** dengan ekstensi: `pdo_mysql`, `mbstring`, `xml`, `curl`, `zip`, `bcmath`, `intl`, `fileinfo` (+ `pdo_sqlite` untuk menjalankan test)
@@ -346,6 +348,20 @@ DB_CONNECTION=mysql DB_DATABASE=axelo_mart_test DB_USERNAME=root DB_PASSWORD= ph
 ```
 
 Cakupan test: register/login & akses per role, CRUD produk + upload multi gambar, potong/kembalikan stok saat ubah status, katalog, checkout tanpa key Midtrans, webhook Midtrans (signature, idempotent, expire), proteksi API key, pencarian produk & cek stok, laporan penjualan, dan chatbot (9router di-mock dengan `Http::fake`: tool per role, penolakan tool call palsu, batas loop, error saat 9router mati/belum dikonfigurasi, riwayat, rate limit).
+
+## Docker / Deploy
+
+Repo ini berisi `Dockerfile` produksi (PHP 8.4 + Apache, port 80) dan `docker/entrypoint.sh`. Entrypoint menunggu DB, menjalankan migrate, seed opsional (`RUN_SEEDER=true`, hanya jika DB kosong), storage:link, lalu cache. Panduan lengkap deploy ke Easypanel (termasuk 9router) ada di **[docs/DEPLOY_EASYPANEL.md](docs/DEPLOY_EASYPANEL.md)**.
+
+Uji lokal dengan Docker (contoh):
+
+```bash
+docker build -t axelo-mart .
+docker run --rm -p 8080:80 --env-file .env.docker \
+  -v axelo-storage:/var/www/html/storage/app/public axelo-mart
+```
+
+(`.env.docker` berisi variabel seperti di panduan Easypanel, dengan `DB_HOST` mengarah ke MySQL yang bisa dijangkau container.)
 
 ## Struktur Singkat
 

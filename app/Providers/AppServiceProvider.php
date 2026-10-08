@@ -6,6 +6,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -18,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        if (config('axelo.force_https')) {
+            URL::forceScheme('https');
+        }
 
         // Widget chatbot: 20 pesan/menit per user (atau per IP untuk guest).
         RateLimiter::for('chatbot', fn (Request $request) => Limit::perMinute(20)

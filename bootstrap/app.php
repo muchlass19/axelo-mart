@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRole::class,
             'chatbot.key' => ChatbotApiKey::class,
         ]);
+        // Di belakang reverse proxy (Traefik/Easypanel): percayai header X-Forwarded-* agar
+        // URL, asset, redirect, dan cookie memakai https & host yang benar.
+        $middleware->trustProxies(at: env('TRUSTED_PROXIES', '*'));
         $middleware->validateCsrfTokens(except: ['midtrans/notification']);
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->isAdmin() ? route('admin.dashboard') : route('home'));
     })
