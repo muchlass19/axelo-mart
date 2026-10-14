@@ -21,7 +21,7 @@
         </span>
     </div>
     <div id="chatbot-messages" class="card-body d-flex flex-column">
-        <div class="chat-msg chat-assistant">Halo! 👋 {{ auth()->user()?->isAdmin() ? 'Saya bisa bantu info produk, stok, laporan penjualan, dan pesanan terbaru.' : 'Saya bisa bantu cari produk, harga, dan cek stok.' }}</div>
+        <div class="chat-msg chat-assistant">Halo! 👋 {{ auth()->user()?->isAdmin() ? 'Saya bisa bantu info produk, stok, laporan penjualan, dan pesanan terbaru.' : 'Saya bisa bantu cari produk, harga, cek stok, dan akses keranjangmu.' }}</div>
         @foreach ($chatHistory as $msg)
             <div class="chat-msg chat-{{ $msg['role'] }}">{{ $msg['content'] }}</div>
         @endforeach
